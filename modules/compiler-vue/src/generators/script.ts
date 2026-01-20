@@ -13,8 +13,11 @@ export function generateVueScript(
   const reactMeta = component.meta.reactMeta;
   const baseClasses = (component.meta as any).baseClasses;
 
+  // Check for state props (from Radix primitives)
+  const stateProps = props.filter(p => p.isStateProp && p.dataStateValues);
+
   // Imports
-  lines.push(generateImports(component, reactMeta, cnImportPath, props, baseClasses));
+  lines.push(generateImports(component, reactMeta, cnImportPath, props, baseClasses, stateProps));
 
   // CVA definition (if present)
   if (reactMeta?.cva) {
@@ -32,6 +35,19 @@ export function generateVueScript(
   lines.push('');
   lines.push(generatePropsDefinition(props, reactMeta, typescript));
 
+  // Emit definitions for state change callbacks
+  const emitDefs = generateEmitDefinitions(props);
+  if (emitDefs) {
+    lines.push('');
+    lines.push(emitDefs);
+  }
+
+  // Computed data-state values for state props
+  if (stateProps.length > 0) {
+    lines.push('');
+    lines.push(generateDataStateComputed(stateProps));
+  }
+
   // Ref handling for forwardRef equivalent
   if (reactMeta?.forwardRef) {
     lines.push('');
@@ -42,6 +58,13 @@ export function generateVueScript(
   if (Object.keys(component.state).length > 0) {
     lines.push('');
     lines.push(generateStateDeclarations(component));
+  }
+
+  // Toggle/handler functions for interactive components
+  const handlers = generateHandlerFunctions(props);
+  if (handlers) {
+    lines.push('');
+    lines.push(handlers);
   }
 
   return lines.filter(line => line !== undefined).join('\n');
@@ -55,7 +78,8 @@ function generateImports(
   reactMeta: ExtendedMitosisComponent['meta']['reactMeta'],
   cnImportPath: string,
   props: PropDefinition[],
-  baseClasses?: string
+  baseClasses?: string,
+  stateProps: PropDefinition[] = []
 ): string {
   const imports: string[] = [];
   const vueImports: string[] = [];
@@ -70,10 +94,10 @@ function generateImports(
     if (!vueImports.includes('ref')) vueImports.push('ref');
   }
 
-  // Check for computed values
+  // Check for computed values (including data-state computed)
   const hasComputed = Object.values(component.state || {}).some(
     s => typeof s === 'object' && s !== null && 'code' in s
-  );
+  ) || stateProps.length > 0;
   if (hasComputed) {
     vueImports.push('computed');
   }
@@ -231,9 +255,18 @@ function generatePropsDefinition(
   // Add other prop defaults
   for (const prop of props) {
     if (prop.defaultValue !== undefined && !defaults[prop.name]) {
-      defaults[prop.name] = typeof prop.defaultValue === 'string'
-        ? `'${prop.defaultValue}'`
-        : String(prop.defaultValue);
+      const val = prop.defaultValue;
+      // Check if value is already a quoted string (e.g., "\"horizontal\"")
+      if (typeof val === 'string' && val.startsWith('"') && val.endsWith('"')) {
+        // Convert double-quoted string to single-quoted for consistency
+        defaults[prop.name] = `'${val.slice(1, -1)}'`;
+      } else if (typeof val === 'string' && !['true', 'false', 'null', 'undefined'].includes(val) && !val.match(/^\d/)) {
+        // It's a string that needs quotes (not a boolean/null/number literal)
+        defaults[prop.name] = `'${val}'`;
+      } else {
+        // It's a literal (true, false, number, etc.)
+        defaults[prop.name] = String(val);
+      }
     }
   }
 
@@ -314,4 +347,97 @@ function mapTypeToVueType(tsType: string): string {
 
   const lowerType = tsType.toLowerCase();
   return mapping[lowerType] || 'null';
+}
+
+/**
+ * Generates emit definitions for state change callbacks.
+ * Converts Radix onXxxChange callbacks to Vue v-model pattern.
+ */
+function generateEmitDefinitions(props: PropDefinition[]): string | null {
+  const emits: string[] = [];
+
+  for (const prop of props) {
+    // Convert onCheckedChange -> 'update:checked'
+    if (prop.name === 'onCheckedChange') {
+      emits.push(`'update:checked': [value: boolean]`);
+    }
+    // Convert onPressedChange -> 'update:pressed'
+    if (prop.name === 'onPressedChange') {
+      emits.push(`'update:pressed': [value: boolean]`);
+    }
+    // Convert onValueChange -> 'update:value' or 'update:modelValue'
+    if (prop.name === 'onValueChange') {
+      emits.push(`'update:modelValue': [value: string]`);
+    }
+  }
+
+  if (emits.length === 0) return null;
+
+  return `const emit = defineEmits<{
+  ${emits.join(';\n  ')};
+}>();`;
+}
+
+/**
+ * Generates computed properties for data-state attributes.
+ * These are used by CSS selectors like data-[state=checked].
+ */
+function generateDataStateComputed(stateProps: PropDefinition[]): string {
+  const lines: string[] = [];
+
+  for (const prop of stateProps) {
+    if (!prop.dataStateValues) continue;
+
+    const { true: trueValue, false: falseValue } = prop.dataStateValues;
+    lines.push(`const dataState = computed(() => (props.${prop.name} ? '${trueValue}' : '${falseValue}'));`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Generates handler functions for interactive components.
+ * Creates toggle functions that emit the appropriate events.
+ */
+function generateHandlerFunctions(props: PropDefinition[]): string | null {
+  const lines: string[] = [];
+
+  // Check if this is a Switch-like component (has checked and onCheckedChange)
+  const hasChecked = props.some(p => p.name === 'checked');
+  const hasOnCheckedChange = props.some(p => p.name === 'onCheckedChange');
+  const hasDisabled = props.some(p => p.name === 'disabled');
+
+  if (hasChecked && hasOnCheckedChange) {
+    if (hasDisabled) {
+      lines.push(`function toggle() {
+  if (!props.disabled) {
+    emit('update:checked', !props.checked);
+  }
+}`);
+    } else {
+      lines.push(`function toggle() {
+  emit('update:checked', !props.checked);
+}`);
+    }
+  }
+
+  // Check if this is a Toggle-like component (has pressed and onPressedChange)
+  const hasPressed = props.some(p => p.name === 'pressed');
+  const hasOnPressedChange = props.some(p => p.name === 'onPressedChange');
+
+  if (hasPressed && hasOnPressedChange) {
+    if (hasDisabled) {
+      lines.push(`function toggle() {
+  if (!props.disabled) {
+    emit('update:pressed', !props.pressed);
+  }
+}`);
+    } else {
+      lines.push(`function toggle() {
+  emit('update:pressed', !props.pressed);
+}`);
+    }
+  }
+
+  return lines.length > 0 ? lines.join('\n\n') : null;
 }

@@ -6,7 +6,9 @@
       "Bash(npx shadcn@latest add card alert avatar switch checkbox progress slider)",
       "Bash(npx shadcn@latest add tabs accordion dialog dropdown-menu tooltip table popover)",
       "Bash(npx tsx:*)",
-      "Bash(pnpm cc:*)"
+      "Bash(pnpm cc:*)",
+      "Bash(pnpm -F @component-converter/cli build:*)",
+      "Bash(node scripts/convert-demos.mjs:*)"
     ]
   }
 }

@@ -92,6 +92,10 @@ export interface PropDefinition {
   allowedValues?: string[];
   /** JSDoc description */
   description?: string;
+  /** Whether this prop controls data-state attribute (from Radix primitives) */
+  isStateProp?: boolean;
+  /** The data-state attribute values for true/false states */
+  dataStateValues?: { true: string; false: string };
 }
 
 /**

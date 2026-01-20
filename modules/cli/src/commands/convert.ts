@@ -130,13 +130,16 @@ export function createConvertCommand(): Command {
         }
 
         // Write output
-        if (options.output && outputs.length === 1) {
-          // Single component - write to specified file
+        // When --all flag is used, always treat output as a directory
+        const treatAsDirectory = options.all || outputs.length > 1;
+
+        if (options.output && !treatAsDirectory) {
+          // Single component without --all flag - write to specified file
           const outputPath = path.resolve(process.cwd(), options.output);
           await fs.writeFile(outputPath, outputs[0].output, 'utf-8');
           console.log(chalk.green(`\nComponent written to: ${outputPath}`));
-        } else if (options.output && outputs.length > 1) {
-          // Multiple components - use output as directory
+        } else if (options.output && treatAsDirectory) {
+          // Multiple components OR --all flag - use output as directory
           const outputDir = path.resolve(process.cwd(), options.output);
           await fs.mkdir(outputDir, { recursive: true });
 

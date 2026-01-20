@@ -5,12 +5,12 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "vitest",
-    "lint": "eslint packages --ext .ts,.tsx",
+    "lint": "eslint modules --ext .ts,.tsx",
     "format": "prettier --write .",
     "convert:demos": "node scripts/convert-demos.mjs",
     "convert:svelte": "node scripts/convert-demos.mjs svelte",
     "convert:vue": "node scripts/convert-demos.mjs vue",
-    "cc": "node packages/cli/dist/index.js"
+    "cc": "node modules/cli/dist/index.js"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

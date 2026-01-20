@@ -21,8 +21,8 @@ export async function compileToVue(
   // Generate script block
   const scriptContent = generateVueScript(component, props, options);
 
-  // Generate template
-  const templateContent = generateVueTemplate(component, options);
+  // Generate template (pass props for state-based attributes like data-state)
+  const templateContent = generateVueTemplate(component, options, props);
 
   // Assemble the Vue SFC
   const langAttr = typescript ? ' lang="ts"' : '';

@@ -76,4 +76,12 @@ export {
   getVueIconPackage,
   isIconPackage,
   transformIconImport,
+  // Radix primitive props
+  radixPrimitiveProps,
+  getRadixPrimitiveProps,
+  getSupportedRadixPackagesWithProps,
+  hasStateProp,
+  getStatePropInfo,
+  type RadixPropDefinition,
+  type RadixPrimitivePropsConfig,
 } from './mappings/index.js';

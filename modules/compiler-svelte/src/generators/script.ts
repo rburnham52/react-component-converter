@@ -13,6 +13,9 @@ export function generateSvelteScript(
   const lines: string[] = [];
   const reactMeta = component.meta.reactMeta;
 
+  // Check for state props (from Radix primitives)
+  const stateProps = props.filter(p => p.isStateProp && p.dataStateValues);
+
   // Language attribute
   const langAttr = typescript ? ' lang="ts"' : '';
 
@@ -37,10 +40,23 @@ export function generateSvelteScript(
     lines.push(generatePropsDestructuring(props, reactMeta, typescript, component));
   }
 
+  // Derived data-state values for state props
+  if (stateProps.length > 0) {
+    lines.push('');
+    lines.push(generateDataStateDerived(stateProps));
+  }
+
   // State declarations (from component.state)
   if (Object.keys(component.state).length > 0) {
     lines.push('');
     lines.push(generateStateDeclarations(component));
+  }
+
+  // Toggle/handler functions for interactive components
+  const handlers = generateHandlerFunctions(props);
+  if (handlers) {
+    lines.push('');
+    lines.push(handlers);
   }
 
   return lines.filter(line => line !== undefined).join('\n');
@@ -236,12 +252,31 @@ function generatePropsDestructuring(
 
   // Add non-variant props
   for (const prop of props) {
-    if (prop.isVariant && prop.defaultValue !== undefined) {
-      // Skip if already added from CVA
-      if (!reactMeta?.cva || !Object.keys(reactMeta.cva.variants).includes(prop.name)) {
-        destructuredProps.push(`${prop.name} = "${prop.defaultValue}"`);
+    if (prop.name === 'className' || prop.name === 'class') {
+      continue; // Already handled above
+    }
+
+    // Skip if already added from CVA
+    if (reactMeta?.cva && Object.keys(reactMeta.cva.variants).includes(prop.name)) {
+      continue;
+    }
+
+    if (prop.defaultValue !== undefined) {
+      // Format the default value correctly
+      const val = prop.defaultValue;
+      let formattedDefault: string;
+
+      // Check if value is already a quoted string (e.g., "\"horizontal\"")
+      if (typeof val === 'string' && val.startsWith('"') && val.endsWith('"')) {
+        formattedDefault = `'${val.slice(1, -1)}'`;
+      } else if (typeof val === 'string' && !['true', 'false', 'null', 'undefined'].includes(val) && !val.match(/^\d/)) {
+        formattedDefault = `'${val}'`;
+      } else {
+        formattedDefault = String(val);
       }
-    } else if (prop.name !== 'className' && prop.name !== 'class') {
+
+      destructuredProps.push(`${prop.name} = ${formattedDefault}`);
+    } else {
       destructuredProps.push(prop.name);
     }
   }
@@ -314,4 +349,72 @@ function getHtmlAttributesImportName(elementType: string): string {
 
   // For generic elements, import just HTMLAttributes
   return 'HTMLAttributes';
+}
+
+/**
+ * Generates $derived declarations for data-state attributes.
+ * These are used by CSS selectors like data-[state=checked].
+ */
+function generateDataStateDerived(stateProps: PropDefinition[]): string {
+  const lines: string[] = [];
+
+  for (const prop of stateProps) {
+    if (!prop.dataStateValues) continue;
+
+    const { true: trueValue, false: falseValue } = prop.dataStateValues;
+    lines.push(`const dataState = $derived(${prop.name} ? '${trueValue}' : '${falseValue}');`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Generates handler functions for interactive components.
+ * Creates toggle functions that update $bindable props.
+ */
+function generateHandlerFunctions(props: PropDefinition[]): string | null {
+  const lines: string[] = [];
+
+  // Check if this is a Switch-like component (has checked)
+  const hasChecked = props.some(p => p.name === 'checked');
+  const hasOnCheckedChange = props.some(p => p.name === 'onCheckedChange');
+  const hasDisabled = props.some(p => p.name === 'disabled');
+
+  if (hasChecked) {
+    if (hasDisabled) {
+      lines.push(`function toggle() {
+  if (!disabled) {
+    checked = !checked;
+    onCheckedChange?.(checked);
+  }
+}`);
+    } else {
+      lines.push(`function toggle() {
+  checked = !checked;
+  onCheckedChange?.(checked);
+}`);
+    }
+  }
+
+  // Check if this is a Toggle-like component (has pressed)
+  const hasPressed = props.some(p => p.name === 'pressed');
+  const hasOnPressedChange = props.some(p => p.name === 'onPressedChange');
+
+  if (hasPressed && !hasChecked) {  // Don't duplicate if already has checked handler
+    if (hasDisabled) {
+      lines.push(`function toggle() {
+  if (!disabled) {
+    pressed = !pressed;
+    onPressedChange?.(pressed);
+  }
+}`);
+    } else {
+      lines.push(`function toggle() {
+  pressed = !pressed;
+  onPressedChange?.(pressed);
+}`);
+    }
+  }
+
+  return lines.length > 0 ? lines.join('\n\n') : null;
 }

@@ -1,5 +1,5 @@
 import type { MitosisNode } from '@builder.io/mitosis';
-import type { ExtendedMitosisComponent, VueCompilerOptions } from '@component-converter/core';
+import type { ExtendedMitosisComponent, VueCompilerOptions, PropDefinition } from '@component-converter/core';
 
 /**
  * Generates the <template> section for a Vue 3 component.
@@ -7,21 +7,44 @@ import type { ExtendedMitosisComponent, VueCompilerOptions } from '@component-co
  */
 export function generateVueTemplate(
   component: ExtendedMitosisComponent,
-  options: VueCompilerOptions = {}
+  options: VueCompilerOptions = {},
+  props: PropDefinition[] = []
 ): string {
   const reactMeta = component.meta.reactMeta;
+
+  // Check for state props that need data-state attributes
+  const stateProps = props.filter(p => p.isStateProp && p.dataStateValues);
 
   // If we have children nodes from Mitosis, convert them
   if (component.children && component.children.length > 0) {
     const content = component.children
-      .map(child => convertNodeToVue(child, reactMeta))
+      .map(child => convertNodeToVue(child, reactMeta, 1, stateProps))
       .join('\n');
     return `<template>\n${content}\n</template>`;
   }
 
   // Fallback: generate a simple template based on forwardRef info
-  const fallbackContent = generateFallbackTemplate(component, reactMeta);
+  const fallbackContent = generateFallbackTemplate(component, reactMeta, props);
   return `<template>\n${fallbackContent}\n</template>`;
+}
+
+/**
+ * Checks if a node's class uses data-state based styling.
+ */
+function nodeUsesDataStateInClass(node: MitosisNode): boolean {
+  // Check static properties
+  const staticClass = node.properties?.['className'] || node.properties?.['class'] || '';
+  if (staticClass.includes('data-[state=')) {
+    return true;
+  }
+
+  // Check bindings
+  const classBinding = node.bindings?.['className']?.code || node.bindings?.['class']?.code || '';
+  if (classBinding.includes('data-[state=')) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -30,7 +53,9 @@ export function generateVueTemplate(
 function convertNodeToVue(
   node: MitosisNode,
   reactMeta: ExtendedMitosisComponent['meta']['reactMeta'],
-  depth: number = 1
+  depth: number = 1,
+  stateProps: PropDefinition[] = [],
+  isRoot: boolean = true
 ): string {
   const indent = '  '.repeat(depth);
 
@@ -42,15 +67,20 @@ function convertNodeToVue(
   // Handle fragment
   if (node.name === 'Fragment' || node.name === '') {
     return node.children
-      ?.map(child => convertNodeToVue(child, reactMeta, depth))
+      ?.map((child, idx) => convertNodeToVue(child, reactMeta, depth, stateProps, idx === 0))
       .join('\n') || '';
   }
 
   // Convert tag name (lowercase for HTML elements)
   const tagName = node.name.toLowerCase();
 
-  // Convert attributes
-  const attributes = convertAttributes(node, reactMeta);
+  // Determine if this element needs data-state:
+  // - Root element gets full state props (role, aria-checked, onclick, etc.)
+  // - Child elements only get data-state if their class uses data-[state=*]
+  const needsDataStateOnly = !isRoot && nodeUsesDataStateInClass(node) && stateProps.some(p => p.name === 'checked');
+
+  // Convert attributes - only pass stateProps for root element
+  const attributes = convertAttributes(node, reactMeta, isRoot ? stateProps : [], needsDataStateOnly);
 
   // Handle void elements (can't have children)
   const voidElements = ['input', 'img', 'br', 'hr', 'meta', 'link', 'area', 'base', 'col', 'embed', 'source', 'track', 'wbr'];
@@ -64,9 +94,9 @@ function convertNodeToVue(
     return `${indent}<${tagName}${attributes} />`;
   }
 
-  // Handle children
+  // Handle children - children are never root elements
   const childrenContent = node.children
-    ?.map(child => convertNodeToVue(child, reactMeta, depth + 1))
+    ?.map(child => convertNodeToVue(child, reactMeta, depth + 1, stateProps, false))
     .join('\n') || '';
 
   // Check for slot/children rendering
@@ -74,8 +104,17 @@ function convertNodeToVue(
     binding => binding?.code?.includes('children') || binding?.code?.includes('props.children')
   );
 
+  // Check if spread props are used (which includes children in React)
+  // When {...props} is used, children come through that spread
+  const hasSpreadProps = Object.entries(node.bindings || {}).some(
+    ([key, binding]) => key === '...' || key === 'spread' || binding?.type === 'spread'
+  );
+
   let innerContent = childrenContent;
   if (hasChildrenSlot || childrenContent.includes('{children}')) {
+    innerContent = `\n${indent}  <slot />\n${indent}`;
+  } else if (hasSpreadProps && !childrenContent) {
+    // If spread props are used and no explicit children, add slot for children
     innerContent = `\n${indent}  <slot />\n${indent}`;
   } else if (childrenContent) {
     innerContent = `\n${childrenContent}\n${indent}`;
@@ -89,7 +128,9 @@ function convertNodeToVue(
  */
 function convertAttributes(
   node: MitosisNode,
-  reactMeta: ExtendedMitosisComponent['meta']['reactMeta']
+  reactMeta: ExtendedMitosisComponent['meta']['reactMeta'],
+  stateProps: PropDefinition[] = [],
+  needsDataStateOnly: boolean = false
 ): string {
   const attrs: string[] = [];
 
@@ -142,6 +183,40 @@ function convertAttributes(
     }
   }
 
+  // Add state prop bindings (e.g., data-state, aria-checked for Switch)
+  // These are only added to the root element (stateProps will be empty for children)
+  if (stateProps.length > 0) {
+    const checkedProp = stateProps.find(p => p.name === 'checked');
+    const hasDisabled = stateProps.some(p => p.name === 'disabled');
+
+    if (checkedProp) {
+      // Add type, role, aria-checked, data-state, disabled, and click handler
+      if (!attrs.some(a => a.includes('type='))) {
+        attrs.push(`type="button"`);
+      }
+      if (!attrs.some(a => a.includes('role='))) {
+        attrs.push(`role="switch"`);
+      }
+      if (!attrs.some(a => a.includes('aria-checked'))) {
+        attrs.push(`:aria-checked="checked"`);
+      }
+      if (!attrs.some(a => a.includes('data-state'))) {
+        attrs.push(`:data-state="dataState"`);
+      }
+      if (!attrs.some(a => a.includes('disabled'))) {
+        attrs.push(`:disabled="disabled"`);
+      }
+      if (!attrs.some(a => a.includes('@click'))) {
+        attrs.push(`@click="toggle"`);
+      }
+    }
+  }
+
+  // For child elements that use data-[state=*] in their class, add only data-state
+  if (needsDataStateOnly && !attrs.some(a => a.includes('data-state'))) {
+    attrs.push(`:data-state="dataState"`);
+  }
+
   return attrs.length > 0 ? ' ' + attrs.join(' ') : '';
 }
 
@@ -149,39 +224,87 @@ function convertAttributes(
  * Converts className binding to Vue class binding.
  */
 function convertClassBinding(code: string, reactMeta: ExtendedMitosisComponent['meta']['reactMeta']): string {
-  // Remove props. prefix and use props.
-  let result = code.replace(/props\./g, 'props.');
+  let result = code;
 
-  // Handle className -> class rename in props access
-  result = result.replace(/props\.className/g, 'props.class');
+  // Convert double quotes to single quotes to avoid conflicts with Vue attribute quotes
+  result = result.replace(/"/g, "'");
 
-  // For cn() calls, ensure proper Vue syntax
+  // For cn() calls with CVA, ensure proper Vue syntax
   // cn(buttonVariants({ variant, size, className })) ->
-  // cn(buttonVariants({ variant: props.variant, size: props.size, className: props.class }))
+  // cn(buttonVariants({ variant: props.variant, size: props.size }), props.class)
+  // Note: We remove className from the CVA call and pass it separately to cn()
 
   if (reactMeta?.cva) {
     const cvaName = reactMeta.cva.name;
-    // Convert CVA function calls to use props. prefix
+
+    // Track if we found className in a CVA call (to add props.class to cn())
+    let hadClassNameInCva = false;
+
+    // Convert CVA function calls to use props. prefix, excluding className
     result = result.replace(
       new RegExp(`${cvaName}\\(\\{\\s*([^}]+)\\s*\\}\\)`, 'g'),
       (match, args) => {
+        // Check if className is in the args
+        const argList = args.split(',').map((a: string) => a.trim());
+        const hasClassName = argList.some((arg: string) =>
+          arg === 'className' || arg.startsWith('className:')
+        );
+
+        if (hasClassName) {
+          hadClassNameInCva = true;
+        }
+
         // Parse the arguments and add props. prefix where needed
-        const convertedArgs = args
-          .split(',')
-          .map((arg: string) => {
-            const trimmed = arg.trim();
+        const convertedArgs = argList
+          .map((trimmed: string) => {
+            // Skip className - it will be handled separately via props.class
+            if (trimmed === 'className' || trimmed.startsWith('className:')) {
+              return null;
+            }
             // Handle shorthand properties like { variant, size }
             if (!trimmed.includes(':')) {
-              const propName = trimmed === 'className' ? 'class' : trimmed;
-              return `${trimmed}: props.${propName}`;
+              return `${trimmed}: props.${trimmed}`;
             }
             // Handle explicit properties like { variant: props.variant }
-            return trimmed.replace(/props\./g, 'props.');
+            return trimmed;
           })
+          .filter(Boolean)
           .join(', ');
         return `${cvaName}({ ${convertedArgs} })`;
       }
     );
+
+    // If className was found in CVA call, add props.class as second argument to cn()
+    // cn(buttonVariants({ ... })) -> cn(buttonVariants({ ... }), props.class)
+    if (hadClassNameInCva) {
+      // Match cn(...) where ... contains the CVA call
+      result = result.replace(
+        new RegExp(`cn\\(${cvaName}\\(([^)]+)\\)\\)`, 'g'),
+        `cn(${cvaName}($1), props.class)`
+      );
+    }
+  }
+
+  // Handle className -> props.class rename AFTER CVA conversion
+  // First handle props.className -> props.class
+  result = result.replace(/props\.className/g, 'props.class');
+
+  // Handle standalone className (as a value, not as an object key) -> props.class
+  // Match className when it's:
+  // - At end of string or followed by ) or , or whitespace
+  // - Not followed by : (which would make it an object key)
+  result = result.replace(/\bclassName(?=\s*[,)\s]|$)/g, 'props.class');
+
+  // Handle other prop references that need props. prefix
+  // Only prefix identifiers that are used in comparisons (=== or !==)
+  // E.g., orientation === 'horizontal' -> props.orientation === 'horizontal'
+  // Be careful not to prefix things inside strings or data attributes
+  const propIdentifiers = ['orientation', 'variant', 'size'];
+  for (const prop of propIdentifiers) {
+    // Match prop identifier followed by === or !== (comparison context)
+    // This is more specific to avoid false positives in data attributes
+    const comparisonRegex = new RegExp(`(?<!props\\.)\\b${prop}\\b(?=\\s*[!=]==)`, 'g');
+    result = result.replace(comparisonRegex, `props.${prop}`);
   }
 
   return result;
@@ -247,10 +370,16 @@ function hasSpreadInBindings(node: MitosisNode): boolean {
  */
 function generateFallbackTemplate(
   component: ExtendedMitosisComponent,
-  reactMeta: ExtendedMitosisComponent['meta']['reactMeta']
+  reactMeta: ExtendedMitosisComponent['meta']['reactMeta'],
+  props: PropDefinition[] = []
 ): string {
   // Get base classes from component metadata
   const baseClasses = (component.meta as any).baseClasses;
+
+  // Check for state props (e.g., checked for Switch)
+  const stateProps = props.filter(p => p.isStateProp && p.dataStateValues);
+  const hasCheckedProp = stateProps.some(p => p.name === 'checked');
+  const hasDisabledProp = props.some(p => p.name === 'disabled');
 
   // Determine element type from forwardRef
   let elementTag = 'div';
@@ -268,6 +397,7 @@ function generateFallbackTemplate(
       'HTMLImageElement': 'img',
       'HTMLParagraphElement': 'p',
       'HTMLHeadingElement': 'h5',
+      'HTMLLabelElement': 'label',
     };
     elementTag = tagMapping[elementType] || 'div';
   }
@@ -297,6 +427,16 @@ function generateFallbackTemplate(
     refAttr = ` ref="${refVarName}"`;
   }
 
+  // Build state-related attributes (for Switch, Checkbox, Toggle, etc.)
+  let stateAttrs = '';
+  if (hasCheckedProp) {
+    stateAttrs = ` :aria-checked="checked" :data-state="dataState" :disabled="disabled" @click="toggle"`;
+    // For button-like elements with checked state, add role="switch"
+    if (elementTag === 'button') {
+      stateAttrs = ` type="button" role="switch"${stateAttrs}`;
+    }
+  }
+
   // Generate template
   // Void elements (can't have children)
   const voidElements = ['input', 'img', 'br', 'hr', 'meta', 'link', 'area', 'base', 'col', 'embed', 'source', 'track', 'wbr'];
@@ -304,15 +444,15 @@ function generateFallbackTemplate(
   const noSlotElements = ['textarea', 'select'];
 
   if (voidElements.includes(elementTag)) {
-    return `  <${elementTag}${refAttr}${classAttr} v-bind="$attrs" />`;
+    return `  <${elementTag}${refAttr}${classAttr}${stateAttrs} v-bind="$attrs" />`;
   }
 
   if (noSlotElements.includes(elementTag)) {
     // textarea and select get their value from the value attribute, not slots
-    return `  <${elementTag}${refAttr}${classAttr} v-bind="$attrs" />`;
+    return `  <${elementTag}${refAttr}${classAttr}${stateAttrs} v-bind="$attrs" />`;
   }
 
-  return `  <${elementTag}${refAttr}${classAttr} v-bind="$attrs">
+  return `  <${elementTag}${refAttr}${classAttr}${stateAttrs} v-bind="$attrs">
     <slot />
   </${elementTag}>`;
 }

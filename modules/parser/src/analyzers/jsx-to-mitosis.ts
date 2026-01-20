@@ -208,6 +208,239 @@ function convertJsxAttributes(
 }
 
 /**
+ * Maps Radix primitive component names to their native HTML equivalents.
+ */
+const RADIX_TO_HTML_ELEMENT: Record<string, string> = {
+  // Separator
+  'SeparatorPrimitive.Root': 'div',
+
+  // Label
+  'LabelPrimitive.Root': 'label',
+
+  // Switch
+  'SwitchPrimitive.Root': 'button',
+  'SwitchPrimitive.Thumb': 'span',
+  'SwitchPrimitives.Root': 'button',
+  'SwitchPrimitives.Thumb': 'span',
+
+  // Checkbox
+  'CheckboxPrimitive.Root': 'button',
+  'CheckboxPrimitive.Indicator': 'span',
+
+  // Progress
+  'ProgressPrimitive.Root': 'div',
+  'ProgressPrimitive.Indicator': 'div',
+
+  // Slider
+  'SliderPrimitive.Root': 'div',
+  'SliderPrimitive.Track': 'div',
+  'SliderPrimitive.Range': 'div',
+  'SliderPrimitive.Thumb': 'div',
+
+  // Avatar
+  'AvatarPrimitive.Root': 'span',
+  'AvatarPrimitive.Image': 'img',
+  'AvatarPrimitive.Fallback': 'span',
+
+  // Tabs
+  'TabsPrimitive.Root': 'div',
+  'TabsPrimitive.List': 'div',
+  'TabsPrimitive.Trigger': 'button',
+  'TabsPrimitive.Content': 'div',
+
+  // Accordion
+  'AccordionPrimitive.Root': 'div',
+  'AccordionPrimitive.Item': 'div',
+  'AccordionPrimitive.Trigger': 'button',
+  'AccordionPrimitive.Header': 'h3',
+  'AccordionPrimitive.Content': 'div',
+
+  // Dialog
+  'DialogPrimitive.Root': 'div',
+  'DialogPrimitive.Portal': 'div',
+  'DialogPrimitive.Overlay': 'div',
+  'DialogPrimitive.Content': 'div',
+  'DialogPrimitive.Close': 'button',
+  'DialogPrimitive.Title': 'h2',
+  'DialogPrimitive.Description': 'p',
+  'DialogPrimitive.Trigger': 'button',
+
+  // Alert Dialog
+  'AlertDialogPrimitive.Root': 'div',
+  'AlertDialogPrimitive.Portal': 'div',
+  'AlertDialogPrimitive.Overlay': 'div',
+  'AlertDialogPrimitive.Content': 'div',
+  'AlertDialogPrimitive.Title': 'h2',
+  'AlertDialogPrimitive.Description': 'p',
+  'AlertDialogPrimitive.Action': 'button',
+  'AlertDialogPrimitive.Cancel': 'button',
+  'AlertDialogPrimitive.Trigger': 'button',
+
+  // Popover
+  'PopoverPrimitive.Root': 'div',
+  'PopoverPrimitive.Portal': 'div',
+  'PopoverPrimitive.Content': 'div',
+  'PopoverPrimitive.Trigger': 'button',
+  'PopoverPrimitive.Close': 'button',
+  'PopoverPrimitive.Arrow': 'div',
+
+  // Tooltip
+  'TooltipPrimitive.Root': 'div',
+  'TooltipPrimitive.Portal': 'div',
+  'TooltipPrimitive.Content': 'div',
+  'TooltipPrimitive.Trigger': 'button',
+  'TooltipPrimitive.Arrow': 'div',
+  'TooltipPrimitive.Provider': 'div',
+
+  // Dropdown Menu
+  'DropdownMenuPrimitive.Root': 'div',
+  'DropdownMenuPrimitive.Portal': 'div',
+  'DropdownMenuPrimitive.Content': 'div',
+  'DropdownMenuPrimitive.Trigger': 'button',
+  'DropdownMenuPrimitive.Item': 'div',
+  'DropdownMenuPrimitive.CheckboxItem': 'div',
+  'DropdownMenuPrimitive.RadioItem': 'div',
+  'DropdownMenuPrimitive.Label': 'div',
+  'DropdownMenuPrimitive.Separator': 'div',
+  'DropdownMenuPrimitive.Group': 'div',
+  'DropdownMenuPrimitive.Sub': 'div',
+  'DropdownMenuPrimitive.SubTrigger': 'div',
+  'DropdownMenuPrimitive.SubContent': 'div',
+  'DropdownMenuPrimitive.ItemIndicator': 'span',
+
+  // Select
+  'SelectPrimitive.Root': 'div',
+  'SelectPrimitive.Trigger': 'button',
+  'SelectPrimitive.Value': 'span',
+  'SelectPrimitive.Icon': 'span',
+  'SelectPrimitive.Portal': 'div',
+  'SelectPrimitive.Content': 'div',
+  'SelectPrimitive.Viewport': 'div',
+  'SelectPrimitive.Item': 'div',
+  'SelectPrimitive.ItemText': 'span',
+  'SelectPrimitive.ItemIndicator': 'span',
+  'SelectPrimitive.ScrollUpButton': 'div',
+  'SelectPrimitive.ScrollDownButton': 'div',
+  'SelectPrimitive.Group': 'div',
+  'SelectPrimitive.Label': 'div',
+  'SelectPrimitive.Separator': 'div',
+
+  // Radio Group
+  'RadioGroupPrimitive.Root': 'div',
+  'RadioGroupPrimitive.Item': 'button',
+  'RadioGroupPrimitive.Indicator': 'span',
+
+  // Toggle
+  'TogglePrimitive.Root': 'button',
+
+  // Toggle Group
+  'ToggleGroupPrimitive.Root': 'div',
+  'ToggleGroupPrimitive.Item': 'button',
+
+  // Scroll Area
+  'ScrollAreaPrimitive.Root': 'div',
+  'ScrollAreaPrimitive.Viewport': 'div',
+  'ScrollAreaPrimitive.Scrollbar': 'div',
+  'ScrollAreaPrimitive.Thumb': 'div',
+  'ScrollAreaPrimitive.Corner': 'div',
+
+  // Collapsible
+  'CollapsiblePrimitive.Root': 'div',
+  'CollapsiblePrimitive.Trigger': 'button',
+  'CollapsiblePrimitive.Content': 'div',
+
+  // Context Menu
+  'ContextMenuPrimitive.Root': 'div',
+  'ContextMenuPrimitive.Portal': 'div',
+  'ContextMenuPrimitive.Content': 'div',
+  'ContextMenuPrimitive.Trigger': 'span',
+  'ContextMenuPrimitive.Item': 'div',
+  'ContextMenuPrimitive.CheckboxItem': 'div',
+  'ContextMenuPrimitive.RadioItem': 'div',
+  'ContextMenuPrimitive.Label': 'div',
+  'ContextMenuPrimitive.Separator': 'div',
+  'ContextMenuPrimitive.Group': 'div',
+  'ContextMenuPrimitive.Sub': 'div',
+  'ContextMenuPrimitive.SubTrigger': 'div',
+  'ContextMenuPrimitive.SubContent': 'div',
+  'ContextMenuPrimitive.ItemIndicator': 'span',
+
+  // Menubar
+  'MenubarPrimitive.Root': 'div',
+  'MenubarPrimitive.Menu': 'div',
+  'MenubarPrimitive.Trigger': 'button',
+  'MenubarPrimitive.Portal': 'div',
+  'MenubarPrimitive.Content': 'div',
+  'MenubarPrimitive.Item': 'div',
+  'MenubarPrimitive.CheckboxItem': 'div',
+  'MenubarPrimitive.RadioItem': 'div',
+  'MenubarPrimitive.Label': 'div',
+  'MenubarPrimitive.Separator': 'div',
+  'MenubarPrimitive.Group': 'div',
+  'MenubarPrimitive.Sub': 'div',
+  'MenubarPrimitive.SubTrigger': 'div',
+  'MenubarPrimitive.SubContent': 'div',
+  'MenubarPrimitive.ItemIndicator': 'span',
+
+  // Navigation Menu
+  'NavigationMenuPrimitive.Root': 'nav',
+  'NavigationMenuPrimitive.List': 'ul',
+  'NavigationMenuPrimitive.Item': 'li',
+  'NavigationMenuPrimitive.Trigger': 'button',
+  'NavigationMenuPrimitive.Content': 'div',
+  'NavigationMenuPrimitive.Link': 'a',
+  'NavigationMenuPrimitive.Viewport': 'div',
+  'NavigationMenuPrimitive.Indicator': 'div',
+
+  // Hover Card
+  'HoverCardPrimitive.Root': 'div',
+  'HoverCardPrimitive.Trigger': 'a',
+  'HoverCardPrimitive.Portal': 'div',
+  'HoverCardPrimitive.Content': 'div',
+
+  // Aspect Ratio
+  'AspectRatioPrimitive.Root': 'div',
+
+  // Toast
+  'ToastPrimitive.Provider': 'div',
+  'ToastPrimitive.Root': 'li',
+  'ToastPrimitive.Title': 'div',
+  'ToastPrimitive.Description': 'div',
+  'ToastPrimitive.Close': 'button',
+  'ToastPrimitive.Action': 'button',
+  'ToastPrimitive.Viewport': 'ol',
+};
+
+/**
+ * Normalizes a tag name, converting Radix primitives to native HTML elements.
+ */
+function normalizeTagName(tagName: string): string {
+  // Check for exact match
+  if (RADIX_TO_HTML_ELEMENT[tagName]) {
+    return RADIX_TO_HTML_ELEMENT[tagName];
+  }
+
+  // Try converting plural to singular (SwitchPrimitives -> SwitchPrimitive)
+  const singularForm = tagName.replace(/Primitives\./, 'Primitive.');
+  if (RADIX_TO_HTML_ELEMENT[singularForm]) {
+    return RADIX_TO_HTML_ELEMENT[singularForm];
+  }
+
+  // If it starts with a capital letter and contains a dot, it's likely a component
+  // that should be converted to a native element
+  if (tagName.includes('.') && /^[A-Z]/.test(tagName)) {
+    // Try without the Primitive suffix variations
+    const normalized = tagName.replace(/Primitives?\./, '');
+    // If we still have a dot, use a reasonable default
+    if (normalized.includes('.')) {
+      return 'div';
+    }
+  }
+
+  return tagName;
+}
+
+/**
  * Creates a Mitosis node
  */
 function createMitosisNode(
@@ -216,9 +449,12 @@ function createMitosisNode(
   bindings: Record<string, Binding>,
   children: MitosisNode[]
 ): MitosisNode {
+  // Normalize Radix primitive names to HTML elements
+  const normalizedName = normalizeTagName(name);
+
   return {
     '@type': '@builder.io/mitosis/node',
-    name,
+    name: normalizedName,
     meta: {},
     scope: {},
     properties,

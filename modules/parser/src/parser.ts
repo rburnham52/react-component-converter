@@ -19,6 +19,7 @@ import {
   hasForwardRef,
   getForwardRefComponentName,
   analyzeProps,
+  analyzePropsForComponent,
   analyzeImports,
   usesCnUtility,
   extractJsxFromComponent,
@@ -529,18 +530,6 @@ function extractBaseClasses(code: string): string | undefined {
 }
 
 
-/**
- * Analyzes props for a specific component in the file.
- */
-function analyzePropsForComponent(
-  sourceFile: SourceFile,
-  componentName: string,
-  cvaConfig?: CvaConfig
-): PropDefinition[] {
-  // This is a simplified version - in a full implementation,
-  // we would find the specific interface/type for this component
-  return analyzeProps(sourceFile, cvaConfig);
-}
 
 /**
  * Creates a Mitosis component structure with optional JSX children.

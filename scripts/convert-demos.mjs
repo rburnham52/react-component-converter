@@ -18,10 +18,10 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
-const CLI = 'node packages/cli/dist/index.js';
+const CLI = 'node modules/cli/dist/index.js';
 const PLAYGROUND = path.join(ROOT, 'playground/src/components/ui');
 const SVELTE_OUT = path.join(ROOT, 'demos/svelte-demo/src/lib/components/ui');
-const VUE_OUT = path.join(ROOT, 'demos/vue-demo/src/components/ui');
+const VUE_OUT = path.join(ROOT, 'demos/vue-demo/src/lib/components/ui');
 
 // Parse arguments
 const target = process.argv[2] || 'both'; // svelte, vue, or both
@@ -41,17 +41,17 @@ function getComponentName(filePath) {
     .join('');
 }
 
-// Convert a single file
+// Convert a single file (handles multi-component files with --all flag)
 function convertFile(inputPath, targetFramework) {
   const name = getComponentName(inputPath);
-  const ext = targetFramework === 'svelte' ? 'svelte' : 'vue';
   const outDir = targetFramework === 'svelte' ? SVELTE_OUT : VUE_OUT;
-  const outputPath = path.join(outDir, `${name}.${ext}`);
 
   process.stdout.write(`  ${name}...`);
 
   try {
-    execSync(`${CLI} convert "${inputPath}" -t ${targetFramework} -o "${outputPath}"`, {
+    // Use --all flag to convert all components in the file
+    // The CLI will output multiple files to the directory when --all is used
+    execSync(`${CLI} convert "${inputPath}" -t ${targetFramework} -o "${outDir}" --all`, {
       cwd: ROOT,
       stdio: 'pipe',
     });

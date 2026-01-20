@@ -22,8 +22,8 @@ export async function compileToSvelte(
   // Generate script block
   const scriptContent = generateSvelteScript(component, props, options);
 
-  // Generate template
-  const templateContent = generateSvelteTemplate(component, options);
+  // Generate template (pass props for state-based attributes like data-state)
+  const templateContent = generateSvelteTemplate(component, options, props);
 
   // Assemble the Svelte component
   const langAttr = typescript ? ' lang="ts"' : '';
