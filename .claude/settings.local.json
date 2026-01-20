@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(pnpm install:*)",
-      "Bash(node packages/cli/dist/index.js:*)"
+      "Bash(node packages/cli/dist/index.js:*)",
+      "Bash(npx shadcn@latest add card alert avatar switch checkbox progress slider)",
+      "Bash(npx shadcn@latest add tabs accordion dialog dropdown-menu tooltip table popover)",
+      "Bash(npx tsx:*)"
     ]
   }
 }
