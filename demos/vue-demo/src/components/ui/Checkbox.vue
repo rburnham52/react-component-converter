@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { cn } from '@/lib/utils';
-// Note: Check icon from lucide-vue-next would be used in a full implementation
-// import { Check } from 'lucide-vue-next';
+import { Check } from 'lucide-vue-next';
 
 interface Props {
   class?: string;

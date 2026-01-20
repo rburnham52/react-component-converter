@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { cn } from '@/lib/utils';
+import { ChevronDown } from 'lucide-vue-next';
 
 interface Props {
   class?: string;
@@ -14,7 +15,7 @@ defineExpose({ elementRef });
 </script>
 
 <template>
-  <div ref="elementRef" :class="cn('shrink-0 bg-border', props.class)" v-bind="$attrs">
+  <div ref="elementRef" :class="cn('border-b', props.class)" v-bind="$attrs">
     <slot />
   </div>
 </template>

@@ -2,14 +2,14 @@
 import { cn } from "$lib/utils";
 import type { HTMLAttributes } from "svelte/elements";
 
-interface Props extends HTMLAttributes<HTMLDivElement> {
+interface Props extends HTMLAttributes<HTMLSpanElement> {
   class?: string;
-  ref?: HTMLDivElement | null;
+  ref?: HTMLSpanElement | null;
 }
 
 let { class: className, ref = $bindable(null), children, ...restProps }: Props = $props();
 </script>
 
-<div bind:this={ref} class={cn("shrink-0 bg-border", className)} {...restProps}>
+<span bind:this={ref} class={cn("relative flex w-full touch-none select-none items-center", className)} {...restProps}>
   {@render children?.()}
-</div>
+</span>

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { cn } from "$lib/utils";
 import type { HTMLAttributes } from "svelte/elements";
+import { ChevronDown } from "lucide-svelte";
 
 interface Props extends HTMLAttributes<HTMLDivElement> {
   class?: string;
@@ -10,6 +11,6 @@ interface Props extends HTMLAttributes<HTMLDivElement> {
 let { class: className, ref = $bindable(null), children, ...restProps }: Props = $props();
 </script>
 
-<div bind:this={ref} class={cn("shrink-0 bg-border", className)} {...restProps}>
+<div bind:this={ref} class={cn("border-b", className)} {...restProps}>
   {@render children?.()}
 </div>

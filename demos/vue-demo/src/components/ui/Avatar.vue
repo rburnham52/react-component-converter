@@ -8,13 +8,17 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const elementRef = ref<HTMLDivElement | null>(null);
+const elementRef = ref<HTMLSpanElement | null>(null);
 
 defineExpose({ elementRef });
 </script>
 
 <template>
-  <div ref="elementRef" :class="cn('shrink-0 bg-border', props.class)" v-bind="$attrs">
+  <span
+    ref="elementRef"
+    :class="cn('relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full', props.class)"
+    v-bind="$attrs"
+  >
     <slot />
-  </div>
+  </span>
 </template>

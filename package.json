@@ -6,13 +6,17 @@
     "build": "pnpm -r build",
     "test": "vitest",
     "lint": "eslint packages --ext .ts,.tsx",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "convert:demos": "node scripts/convert-demos.mjs",
+    "convert:svelte": "node scripts/convert-demos.mjs svelte",
+    "convert:vue": "node scripts/convert-demos.mjs vue",
+    "cc": "node packages/cli/dist/index.js"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "prettier": "^3.2.0",
     "typescript": "^5.4.0",
-    "vitest": "^2.0.0",
-    "prettier": "^3.2.0"
+    "vitest": "^2.0.0"
   },
   "engines": {
     "node": ">=18.0.0",

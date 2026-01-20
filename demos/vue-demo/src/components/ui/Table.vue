@@ -8,13 +8,13 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const elementRef = ref<HTMLDivElement | null>(null);
+const elementRef = ref<HTMLTableElement | null>(null);
 
 defineExpose({ elementRef });
 </script>
 
 <template>
-  <div ref="elementRef" :class="cn('shrink-0 bg-border', props.class)" v-bind="$attrs">
+  <div ref="elementRef" :class="cn('w-full caption-bottom text-sm', props.class)" v-bind="$attrs">
     <slot />
   </div>
 </template>

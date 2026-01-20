@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+// Single-file components (fully supported by CLI conversion)
 import Button from './components/ui/Button.vue';
 import Input from './components/ui/Input.vue';
 import Label from './components/ui/Label.vue';
@@ -10,26 +11,6 @@ import Separator from './components/ui/Separator.vue';
 import Switch from './components/ui/Switch.vue';
 import Progress from './components/ui/Progress.vue';
 import Checkbox from './components/ui/Checkbox.vue';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs';
-import { Avatar, AvatarImage, AvatarFallback } from './components/ui/avatar';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  TableCaption
-} from './components/ui/table';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter
-} from './components/ui/card';
-import { Alert, AlertTitle, AlertDescription } from './components/ui/alert';
 
 const clickCount = ref(0);
 const switchChecked = ref(false);
@@ -42,6 +23,10 @@ const progress = ref(33);
     <h1 class="text-3xl font-bold">Vue 3 Demo - Converted shadcn Components</h1>
     <p class="text-muted-foreground">
       These components were converted from React shadcn/ui using component-converter.
+    </p>
+    <p class="text-sm text-muted-foreground">
+      Note: Only single-component files are shown. Multi-component files (Card, Alert, Table, Tabs, Avatar)
+      require CLI enhancement to split into separate files.
     </p>
 
     <!-- Button Section -->
@@ -97,25 +82,6 @@ const progress = ref(33);
         <Badge variant="secondary">Secondary</Badge>
         <Badge variant="destructive">Destructive</Badge>
         <Badge variant="outline">Outline</Badge>
-      </div>
-    </section>
-
-    <Separator class="my-8" />
-
-    <!-- Avatar Section -->
-    <section class="space-y-4">
-      <h2 class="text-xl font-semibold">Avatar</h2>
-      <div class="flex gap-4 items-center">
-        <Avatar>
-          <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-          <AvatarFallback>CN</AvatarFallback>
-        </Avatar>
-        <Avatar>
-          <AvatarFallback>JD</AvatarFallback>
-        </Avatar>
-        <Avatar>
-          <AvatarFallback>AB</AvatarFallback>
-        </Avatar>
       </div>
     </section>
 
@@ -215,151 +181,6 @@ const progress = ref(33);
           <Skeleton class="h-4 w-[200px]" />
         </div>
       </div>
-    </section>
-
-    <Separator class="my-8" />
-
-    <!-- Card Section -->
-    <section class="space-y-4">
-      <h2 class="text-xl font-semibold">Card Component</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Card Title</CardTitle>
-            <CardDescription>Card description goes here</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>Card content with some text explaining something interesting.</p>
-          </CardContent>
-          <CardFooter class="flex gap-2">
-            <Button variant="outline">Cancel</Button>
-            <Button>Submit</Button>
-          </CardFooter>
-        </Card>
-
-        <Card class="border-destructive">
-          <CardHeader>
-            <CardTitle>Another Card</CardTitle>
-            <CardDescription>With custom border class</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>This card demonstrates that custom classes can be passed through.</p>
-          </CardContent>
-        </Card>
-      </div>
-    </section>
-
-    <Separator class="my-8" />
-
-    <!-- Alert Section -->
-    <section class="space-y-4">
-      <h2 class="text-xl font-semibold">Alert</h2>
-      <Alert>
-        <AlertTitle>Default Alert</AlertTitle>
-        <AlertDescription>
-          This is a default alert message to notify users.
-        </AlertDescription>
-      </Alert>
-      <Alert variant="destructive">
-        <AlertTitle>Destructive Alert</AlertTitle>
-        <AlertDescription>
-          Something went wrong! Please try again.
-        </AlertDescription>
-      </Alert>
-    </section>
-
-    <Separator class="my-8" />
-
-    <!-- Table Section -->
-    <section class="space-y-4">
-      <h2 class="text-xl font-semibold">Table</h2>
-      <Table>
-        <TableCaption>A list of recent invoices.</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead class="w-[100px]">Invoice</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Method</TableHead>
-            <TableHead class="text-right">Amount</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow>
-            <TableCell class="font-medium">INV001</TableCell>
-            <TableCell>Paid</TableCell>
-            <TableCell>Credit Card</TableCell>
-            <TableCell class="text-right">$250.00</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell class="font-medium">INV002</TableCell>
-            <TableCell>Pending</TableCell>
-            <TableCell>PayPal</TableCell>
-            <TableCell class="text-right">$150.00</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell class="font-medium">INV003</TableCell>
-            <TableCell>Unpaid</TableCell>
-            <TableCell>Bank Transfer</TableCell>
-            <TableCell class="text-right">$350.00</TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-    </section>
-
-    <Separator class="my-8" />
-
-    <!-- Tabs Section -->
-    <section class="space-y-4">
-      <h2 class="text-xl font-semibold">Tabs</h2>
-      <Tabs defaultValue="account" class="w-full max-w-md">
-        <TabsList>
-          <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="password">Password</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
-        <TabsContent value="account">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account</CardTitle>
-              <CardDescription>Manage your account settings here.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div class="grid gap-2">
-                <Label for="name">Name</Label>
-                <Input id="name" value="John Doe" />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="password">
-          <Card>
-            <CardHeader>
-              <CardTitle>Password</CardTitle>
-              <CardDescription>Change your password here.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div class="grid gap-2">
-                <Label for="current">Current Password</Label>
-                <Input id="current" type="password" />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Settings</CardTitle>
-              <CardDescription>Adjust your preferences.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div class="flex items-center gap-2">
-                <Switch />
-                <Label>Enable notifications</Label>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
     </section>
   </main>
 </template>

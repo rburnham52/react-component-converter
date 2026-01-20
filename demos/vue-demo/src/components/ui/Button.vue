@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref as vueRef } from 'vue';
+import { ref } from 'vue';
 import { cn } from '@/lib/utils';
 import { cva } from 'class-variance-authority';
 
@@ -30,6 +30,7 @@ const buttonVariants = cva(
 );
 
 interface Props {
+  asChild?: boolean;
   class?: string;
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
   size?: 'default' | 'sm' | 'lg' | 'icon';
@@ -40,15 +41,15 @@ const props = withDefaults(defineProps<Props>(), {
   size: 'default',
 });
 
-const buttonRef = vueRef<HTMLButtonElement | null>(null);
+const elementRef = ref<HTMLButtonElement | null>(null);
 
-defineExpose({ el: buttonRef });
+defineExpose({ elementRef });
 </script>
 
 <template>
   <button
-    ref="buttonRef"
-    :class="cn(buttonVariants({ variant: props.variant, size: props.size, className: props.class }))"
+    ref="elementRef"
+    :class="cn(buttonVariants({ variant: props.variant, size: props.size }), props.class)"
     v-bind="$attrs"
   >
     <slot />
