@@ -1,0 +1,230 @@
+/**
+ * Creates a shadcn plugin that extracts CVA, cn, and forwardRef patterns
+ * from React shadcn components.
+ *
+ * This plugin is OPTIONAL - use it only when converting shadcn components.
+ * For generic React components, skip this plugin.
+ */
+export function createShadcnPlugin(options = {}) {
+    return {
+        name: 'shadcn',
+        order: 10, // Run early to extract metadata
+        postParse: async (component, context) => {
+            const sourceCode = context.sourceCode;
+            const metadata = {
+                usesCn: false,
+                imports: [],
+            };
+            // Extract CVA configuration
+            const cvaConfig = extractCvaConfig(sourceCode);
+            if (cvaConfig) {
+                metadata.cva = cvaConfig;
+            }
+            // Check for cn() utility usage
+            metadata.usesCn = checkUsesCn(sourceCode);
+            // Extract forwardRef configuration
+            const forwardRefConfig = extractForwardRef(sourceCode);
+            if (forwardRefConfig) {
+                metadata.forwardRef = forwardRefConfig;
+            }
+            // Extract and categorize imports
+            metadata.imports = extractImports(sourceCode);
+            // Store in context metadata for other plugins and compiler
+            context.metadata.reactMeta = metadata;
+            // Also store in component meta for Mitosis generators
+            // Use type assertion since ShadcnMetadata is JSON-compatible
+            component.meta.reactMeta = metadata;
+            return component;
+        },
+    };
+}
+/**
+ * Extracts CVA configuration from source code
+ */
+function extractCvaConfig(code) {
+    // Match cva() calls: const xxxVariants = cva("base classes", { variants: {...} })
+    const cvaMatch = code.match(/const\s+(\w+)\s*=\s*cva\s*\(\s*["'`]([^"'`]*)["'`]\s*,\s*\{/);
+    if (!cvaMatch)
+        return undefined;
+    const name = cvaMatch[1];
+    const baseClasses = cvaMatch[2];
+    // Extract variants object
+    const variants = extractVariants(code, name);
+    const defaultVariants = extractDefaultVariants(code, name);
+    return {
+        name,
+        baseClasses,
+        variants,
+        defaultVariants,
+    };
+}
+/**
+ * Extracts variants from CVA configuration
+ */
+function extractVariants(code, cvaName) {
+    const variants = {};
+    // Find the CVA call for this name
+    const cvaPattern = new RegExp(`const\\s+${cvaName}\\s*=\\s*cva\\s*\\([^{]*\\{([\\s\\S]*?)\\}\\s*\\)`, 'm');
+    const match = code.match(cvaPattern);
+    if (!match)
+        return variants;
+    const configBlock = match[1];
+    // Find variants: { ... }
+    const variantsMatch = configBlock.match(/variants\s*:\s*\{([\s\S]*?)\n\s*\}/);
+    if (!variantsMatch)
+        return variants;
+    const variantsBlock = variantsMatch[1];
+    // Parse each variant
+    const variantPattern = /(\w+)\s*:\s*\{([\s\S]*?)\}/g;
+    let variantMatch;
+    while ((variantMatch = variantPattern.exec(variantsBlock)) !== null) {
+        const variantName = variantMatch[1];
+        const variantValues = variantMatch[2];
+        variants[variantName] = {};
+        // Parse each value
+        const valuePattern = /(\w+)\s*:\s*["'`]([^"'`]*)["'`]/g;
+        let valueMatch;
+        while ((valueMatch = valuePattern.exec(variantValues)) !== null) {
+            variants[variantName][valueMatch[1]] = valueMatch[2];
+        }
+    }
+    return variants;
+}
+/**
+ * Extracts default variants from CVA configuration
+ */
+function extractDefaultVariants(code, cvaName) {
+    const defaults = {};
+    // Find defaultVariants in the CVA call
+    const defaultsPattern = /defaultVariants\s*:\s*\{([\s\S]*?)\}/;
+    const match = code.match(defaultsPattern);
+    if (!match)
+        return defaults;
+    const defaultsBlock = match[1];
+    const valuePattern = /(\w+)\s*:\s*["'`](\w+)["'`]/g;
+    let valueMatch;
+    while ((valueMatch = valuePattern.exec(defaultsBlock)) !== null) {
+        defaults[valueMatch[1]] = valueMatch[2];
+    }
+    return defaults;
+}
+/**
+ * Checks if the component uses cn() utility
+ */
+function checkUsesCn(code) {
+    // Check for cn import
+    const hasImport = /import\s*\{[^}]*\bcn\b[^}]*\}\s*from/.test(code);
+    // Check for cn usage
+    const hasUsage = /\bcn\s*\(/.test(code);
+    return hasImport || hasUsage;
+}
+/**
+ * Extracts forwardRef configuration
+ */
+function extractForwardRef(code) {
+    // Match forwardRef pattern
+    const forwardRefMatch = code.match(/React\.forwardRef|forwardRef/);
+    if (!forwardRefMatch)
+        return undefined;
+    // Extract element type from forwardRef<ElementType, PropsType>
+    const typeMatch = code.match(/forwardRef\s*<\s*([^,>]+)/);
+    let elementType = 'HTMLElement';
+    if (typeMatch) {
+        elementType = normalizeElementType(typeMatch[1].trim());
+    }
+    // Extract ref parameter name
+    const refParamMatch = code.match(/\(\s*\{[^}]*\}\s*,\s*(\w+)\s*\)/);
+    const paramName = refParamMatch ? refParamMatch[1] : 'ref';
+    return { elementType, paramName };
+}
+/**
+ * Normalizes element type from React patterns to standard HTML types
+ */
+function normalizeElementType(rawType) {
+    // Already a standard HTML type
+    if (rawType.startsWith('HTML') && rawType.endsWith('Element')) {
+        return rawType;
+    }
+    // Handle React.ElementRef<typeof X>
+    const elementRefMatch = rawType.match(/(?:React\.)?ElementRef\s*<\s*typeof\s+([^>]+)\s*>/);
+    if (elementRefMatch) {
+        return mapPrimitiveToElement(elementRefMatch[1].trim());
+    }
+    return 'HTMLElement';
+}
+/**
+ * Maps Radix primitive names to HTML element types
+ */
+function mapPrimitiveToElement(primitive) {
+    const mappings = {
+        // Common endings
+        Root: 'HTMLDivElement',
+        Trigger: 'HTMLButtonElement',
+        Content: 'HTMLDivElement',
+        Close: 'HTMLButtonElement',
+        // Specific primitives
+        'LabelPrimitive.Root': 'HTMLLabelElement',
+        'SwitchPrimitive.Root': 'HTMLButtonElement',
+        'CheckboxPrimitive.Root': 'HTMLButtonElement',
+        'ProgressPrimitive.Root': 'HTMLDivElement',
+        'SeparatorPrimitive.Root': 'HTMLDivElement',
+    };
+    // Check exact match
+    if (mappings[primitive]) {
+        return mappings[primitive];
+    }
+    // Check suffix
+    const parts = primitive.split('.');
+    const suffix = parts[parts.length - 1];
+    if (mappings[suffix]) {
+        return mappings[suffix];
+    }
+    return 'HTMLElement';
+}
+/**
+ * Extracts and categorizes imports from source code
+ */
+function extractImports(code) {
+    const imports = [];
+    // Match import statements
+    const importPattern = /import\s+(?:(\w+)\s*,?\s*)?(?:\{([^}]+)\})?\s*from\s*["'`]([^"'`]+)["'`]/g;
+    let match;
+    while ((match = importPattern.exec(code)) !== null) {
+        const defaultImport = match[1];
+        const namedImports = match[2]
+            ?.split(',')
+            .map(s => s.trim().split(/\s+as\s+/)[0])
+            .filter(Boolean);
+        const source = match[3];
+        imports.push({
+            source,
+            defaultImport,
+            namedImports,
+            category: categorizeImport(source),
+        });
+    }
+    return imports;
+}
+/**
+ * Categorizes an import by its source
+ */
+function categorizeImport(source) {
+    if (source === 'react' || source.startsWith('react-')) {
+        return 'react';
+    }
+    if (source.startsWith('@radix-ui/')) {
+        return 'radix';
+    }
+    if (source.includes('lucide') || source.includes('icon')) {
+        return 'icon';
+    }
+    if (source.includes('utils') || source === 'clsx' || source === 'class-variance-authority') {
+        return 'utility';
+    }
+    if (source.endsWith('.css') || source.endsWith('.scss')) {
+        return 'style';
+    }
+    return 'other';
+}
+export default createShadcnPlugin;
+//# sourceMappingURL=shadcn-plugin.js.map
