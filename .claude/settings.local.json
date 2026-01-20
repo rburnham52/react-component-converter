@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install:*)",
+      "Bash(node packages/cli/dist/index.js:*)"
+    ]
+  }
+}
