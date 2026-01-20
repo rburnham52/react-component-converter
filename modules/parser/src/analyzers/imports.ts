@@ -1,5 +1,5 @@
 import { SourceFile, SyntaxKind } from 'ts-morph';
-import type { OriginalImport } from '@component-converter/core';
+import type { OriginalImport } from '@react-component-converter/core';
 
 /**
  * Analyzes imports from a React component to categorize them

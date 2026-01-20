@@ -1,4 +1,4 @@
-import type { ExtendedMitosisComponent, VueCompilerOptions, PropDefinition, CvaConfig } from '@component-converter/core';
+import type { ExtendedMitosisComponent, VueCompilerOptions, PropDefinition, CvaConfig } from '@react-component-converter/core';
 
 /**
  * Generates the <script setup> block for a Vue 3 component.

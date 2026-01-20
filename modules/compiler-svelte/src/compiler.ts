@@ -5,7 +5,7 @@ import type {
   ComponentDefinition,
   ParseResult,
   CvaConfig,
-} from '@component-converter/core';
+} from '@react-component-converter/core';
 import { generateSvelteScript } from './generators/script.js';
 import { generateSvelteTemplate } from './generators/template.js';
 

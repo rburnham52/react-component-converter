@@ -4,7 +4,7 @@ import type {
   PropDefinition,
   ComponentDefinition,
   ParseResult,
-} from '@component-converter/core';
+} from '@react-component-converter/core';
 import { generateVueScript } from './generators/script.js';
 import { generateVueTemplate } from './generators/template.js';
 

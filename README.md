@@ -1,4 +1,4 @@
-# Component Converter
+# React Component Converter (rcc)
 
 A CLI tool that converts React shadcn/ui components to **Svelte 5** and **Vue 3** using a two-stage pipeline with Mitosis as the intermediate representation.
 
@@ -22,13 +22,13 @@ pnpm install
 pnpm build
 
 # Convert a component to Vue
-pnpm cc convert ./button.tsx -t vue -o ./Button.vue
+pnpm rcc convert ./button.tsx -t vue -o ./Button.vue
 
 # Convert a component to Svelte
-pnpm cc convert ./button.tsx -t svelte -o ./Button.svelte
+pnpm rcc convert ./button.tsx -t svelte -o ./Button.svelte
 
 # Convert all components in a file
-pnpm cc convert ./card.tsx -t vue -a
+pnpm rcc convert ./card.tsx -t vue -a
 ```
 
 ## Architecture
@@ -40,7 +40,7 @@ React TSX → [Parser] → Mitosis IR + ReactMeta → [Compiler] → Vue/Svelte
 ### Project Structure
 
 ```
-component-converter/
+react-component-converter/
 ├── modules/
 │   ├── core/              # Shared types, mappings, utilities
 │   ├── parser/            # React component parsing (ts-morph)
@@ -61,11 +61,11 @@ Convert React components directly to target framework:
 
 ```bash
 # Single component output
-pnpm cc convert ./Button.tsx -t vue -o ./Button.vue
-pnpm cc convert ./Button.tsx -t svelte -o ./Button.svelte
+pnpm rcc convert ./Button.tsx -t vue -o ./Button.vue
+pnpm rcc convert ./Button.tsx -t svelte -o ./Button.svelte
 
 # All components in file (outputs to directory)
-pnpm cc convert ./Card.tsx -t vue -a -o ./components/
+pnpm rcc convert ./Card.tsx -t vue -a -o ./components/
 
 # Options
 -t, --target <framework>   Target framework: vue | svelte
@@ -81,8 +81,8 @@ pnpm cc convert ./Card.tsx -t vue -a -o ./components/
 Parse React component and output intermediate representation:
 
 ```bash
-pnpm cc parse ./Button.tsx
-pnpm cc parse ./Button.tsx -o ./button.ir.json
+pnpm rcc parse ./Button.tsx
+pnpm rcc parse ./Button.tsx -o ./button.ir.json
 ```
 
 ### `compile` - Compile from IR
@@ -90,8 +90,8 @@ pnpm cc parse ./Button.tsx -o ./button.ir.json
 Compile Mitosis IR to target framework:
 
 ```bash
-pnpm cc compile ./button.ir.json -t vue
-pnpm cc compile ./button.ir.json -t svelte -o ./Button.svelte
+pnpm rcc compile ./button.ir.json -t vue
+pnpm rcc compile ./button.ir.json -t svelte -o ./Button.svelte
 ```
 
 ## Supported Patterns
@@ -299,7 +299,7 @@ interface ReactComponentMeta {
 
 ## Module Details
 
-### @component-converter/core
+### @react-component-converter/core
 
 Shared types and utilities:
 
@@ -307,7 +307,7 @@ Shared types and utilities:
 - **Mappings**: Radix primitive props, icon mappings, framework equivalents
 - **Utilities**: Class name helpers, type guards
 
-### @component-converter/parser
+### @react-component-converter/parser
 
 React component analysis using ts-morph:
 
@@ -317,7 +317,7 @@ React component analysis using ts-morph:
   - `props.ts` - Extract props from interfaces/types
   - `imports.ts` - Categorize and transform imports
 
-### @component-converter/compiler-vue
+### @react-component-converter/compiler-vue
 
 Vue 3 SFC generation:
 
@@ -331,7 +331,7 @@ Vue 3 SFC generation:
 - `className` → `:class` binding
 - Children → `<slot />`
 
-### @component-converter/compiler-svelte
+### @react-component-converter/compiler-svelte
 
 Svelte 5 component generation:
 
@@ -346,7 +346,7 @@ Svelte 5 component generation:
 - Children → `{@render children?.()}`
 - State derivation → `$derived()`
 
-### @component-converter/cli
+### react-component-converter (CLI)
 
 Commander.js-based CLI with commands:
 - `parse` - Output IR JSON
@@ -376,14 +376,14 @@ pnpm dev
 for file in playground/src/components/ui/*.tsx; do
   name=$(basename "$file" .tsx)
   Name=$(echo "$name" | sed -r 's/(^|-)([a-z])/\U\2/g')
-  pnpm cc convert "$file" -t vue -o "demos/vue-demo/src/lib/components/ui/$Name.vue" -a
+  pnpm rcc convert "$file" -t vue -o "demos/vue-demo/src/lib/components/ui/$Name.vue" -a
 done
 
 # Convert all playground components to Svelte
 for file in playground/src/components/ui/*.tsx; do
   name=$(basename "$file" .tsx)
   Name=$(echo "$name" | sed -r 's/(^|-)([a-z])/\U\2/g')
-  pnpm cc convert "$file" -t svelte -o "demos/svelte-demo/src/lib/components/ui/$Name.svelte" -a
+  pnpm rcc convert "$file" -t svelte -o "demos/svelte-demo/src/lib/components/ui/$Name.svelte" -a
 done
 ```
 

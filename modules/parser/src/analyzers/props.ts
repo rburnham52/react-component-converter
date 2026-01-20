@@ -1,6 +1,6 @@
 import { SourceFile, SyntaxKind, InterfaceDeclaration, TypeAliasDeclaration, PropertySignature } from 'ts-morph';
-import type { PropDefinition, CvaConfig } from '@component-converter/core';
-import { getRadixPrimitiveProps } from '@component-converter/core';
+import type { PropDefinition, CvaConfig } from '@react-component-converter/core';
+import { getRadixPrimitiveProps } from '@react-component-converter/core';
 
 /**
  * Info about Radix primitive usage extracted from component type

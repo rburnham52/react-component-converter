@@ -1,5 +1,5 @@
 {
-  "name": "component-converter-monorepo",
+  "name": "react-component-converter-monorepo",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "convert:demos": "node scripts/convert-demos.mjs",
     "convert:svelte": "node scripts/convert-demos.mjs svelte",
     "convert:vue": "node scripts/convert-demos.mjs vue",
-    "cc": "node modules/cli/dist/index.js"
+    "rcc": "node modules/cli/dist/index.js"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

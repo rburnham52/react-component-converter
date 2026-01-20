@@ -1,5 +1,5 @@
 import { Project, SourceFile, CallExpression, ObjectLiteralExpression, SyntaxKind } from 'ts-morph';
-import type { CvaConfig } from '@component-converter/core';
+import type { CvaConfig } from '@react-component-converter/core';
 
 /**
  * Analyzes a source file to extract CVA (Class Variance Authority) configurations.

@@ -1,5 +1,5 @@
 {
-  "name": "@component-converter/compiler-vue",
+  "name": "@react-component-converter/compiler-vue",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,7 +15,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@component-converter/core": "workspace:*",
+    "@react-component-converter/core": "workspace:*",
     "@builder.io/mitosis": "^0.12.0"
   },
   "devDependencies": {

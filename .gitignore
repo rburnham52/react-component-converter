@@ -368,3 +368,5 @@ demos/*/dist/
 modules/*/dist/
 
 demos/vue-demo/src/components/ui/
+
+modules/cli/

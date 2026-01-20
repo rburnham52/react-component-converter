@@ -1,5 +1,5 @@
 import type { MitosisNode } from '@builder.io/mitosis';
-import type { ExtendedMitosisComponent, VueCompilerOptions, PropDefinition } from '@component-converter/core';
+import type { ExtendedMitosisComponent, VueCompilerOptions, PropDefinition } from '@react-component-converter/core';
 
 /**
  * Generates the <template> section for a Vue 3 component.

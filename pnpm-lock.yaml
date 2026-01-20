@@ -23,16 +23,16 @@ importers:
 
   modules/cli:
     dependencies:
-      '@component-converter/compiler-svelte':
+      '@react-component-converter/compiler-svelte':
         specifier: workspace:*
         version: link:../compiler-svelte
-      '@component-converter/compiler-vue':
+      '@react-component-converter/compiler-vue':
         specifier: workspace:*
         version: link:../compiler-vue
-      '@component-converter/core':
+      '@react-component-converter/core':
         specifier: workspace:*
         version: link:../core
-      '@component-converter/parser':
+      '@react-component-converter/parser':
         specifier: workspace:*
         version: link:../parser
       chalk:
@@ -54,7 +54,7 @@ importers:
       '@builder.io/mitosis':
         specifier: ^0.12.0
         version: 0.12.1(postcss@8.5.6)
-      '@component-converter/core':
+      '@react-component-converter/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -73,7 +73,7 @@ importers:
       '@builder.io/mitosis':
         specifier: ^0.12.0
         version: 0.12.1(postcss@8.5.6)
-      '@component-converter/core':
+      '@react-component-converter/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -114,7 +114,7 @@ importers:
       '@builder.io/mitosis':
         specifier: ^0.12.0
         version: 0.12.1(postcss@8.5.6)
-      '@component-converter/core':
+      '@react-component-converter/core':
         specifier: workspace:*
         version: link:../core
       ts-morph:

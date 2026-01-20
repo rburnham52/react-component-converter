@@ -1,5 +1,5 @@
 import { SourceFile, SyntaxKind, TypeReferenceNode } from 'ts-morph';
-import type { ForwardRefConfig } from '@component-converter/core';
+import type { ForwardRefConfig } from '@react-component-converter/core';
 
 /**
  * Normalizes React-specific element types to standard HTML element types.

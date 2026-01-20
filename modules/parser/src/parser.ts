@@ -10,7 +10,7 @@ import type {
   ComponentDefinition,
   CvaConfig,
   OriginalImport,
-} from '@component-converter/core';
+} from '@react-component-converter/core';
 
 import {
   analyzeCva,

@@ -1,5 +1,5 @@
 import type { MitosisNode } from '@builder.io/mitosis';
-import type { ExtendedMitosisComponent, SvelteCompilerOptions, PropDefinition } from '@component-converter/core';
+import type { ExtendedMitosisComponent, SvelteCompilerOptions, PropDefinition } from '@react-component-converter/core';
 
 /**
  * Generates the template section for a Svelte component.

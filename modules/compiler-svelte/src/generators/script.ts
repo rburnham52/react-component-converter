@@ -1,4 +1,4 @@
-import type { ExtendedMitosisComponent, SvelteCompilerOptions, PropDefinition, CvaConfig } from '@component-converter/core';
+import type { ExtendedMitosisComponent, SvelteCompilerOptions, PropDefinition, CvaConfig } from '@react-component-converter/core';
 
 /**
  * Generates the <script> block for a Svelte 5 component.
