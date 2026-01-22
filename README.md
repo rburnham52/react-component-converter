@@ -34,7 +34,7 @@ pnpm rcc convert ./card.tsx -t vue -a
 ## Architecture
 
 ```
-React TSX → [Parser] → Mitosis IR + ReactMeta → [Compiler] → Vue/Svelte
+React TSX → preParse plugins (ts-morph) → parseJsx() → postParse → componentToX() → postGenerate → Output
 ```
 
 ### Project Structure
@@ -42,10 +42,8 @@ React TSX → [Parser] → Mitosis IR + ReactMeta → [Compiler] → Vue/Svelte
 ```
 react-component-converter/
 ├── modules/
-│   ├── core/              # Shared types, mappings, utilities
+│   ├── core/              # Converter, plugins, Mitosis integration
 │   ├── parser/            # React component parsing (ts-morph)
-│   ├── compiler-vue/      # Vue 3 SFC generation
-│   ├── compiler-svelte/   # Svelte 5 component generation
 │   └── cli/               # Command-line interface
 ├── playground/            # React components for testing
 └── demos/
@@ -209,7 +207,7 @@ Both demos include the `cn` utility at `@/lib/utils` (Vue) or `$lib/utils` (Svel
 
 ## Data Flow
 
-### 1. Parsing Phase
+### 1. preParse Phase (React Analyzer Plugin)
 
 ```
 React TSX
@@ -219,33 +217,34 @@ React TSX
 ├── Extract CVA configurations
 ├── Analyze props from TypeScript interfaces
 ├── Detect Radix primitive usage
-└── Categorize imports
+├── Categorize imports
+└── Transform code for Mitosis compatibility
     ↓
-ParseResult {
-  component: ExtendedMitosisComponent
-  props: PropDefinition[]
-  sharedMeta: { cvaConfigs, imports, usesCn }
-}
+Transformed code + metadata
 ```
 
-### 2. Compilation Phase
+### 2. Parse Phase (Mitosis)
 
 ```
-ParseResult
+Transformed code
     ↓
-[Framework Compiler]
-├── Generate script block
-│   ├── Imports (vue/svelte utilities)
-│   ├── CVA definitions
-│   ├── Props interface
-│   └── Ref handling
-├── Generate template
-│   ├── Element bindings
-│   ├── Class merging
-│   └── Event handlers
-└── Format with Prettier
+[Mitosis parseJsx()]
     ↓
-Vue SFC or Svelte Component
+MitosisComponent (IR)
+```
+
+### 3. Generation Phase (Mitosis + postGenerate Plugins)
+
+```
+MitosisComponent
+    ↓
+[componentToSvelte() / componentToVue()]
+    ↓
+[postGenerate plugins (e.g., Svelte5RunesPlugin)]
+    ↓
+[Prettier formatting]
+    ↓
+Vue SFC or Svelte 5 Component
 ```
 
 ## Core Types
@@ -301,50 +300,38 @@ interface ReactComponentMeta {
 
 ### @react-component-converter/core
 
-Shared types and utilities:
+Converter engine using Mitosis with plugins:
 
+- **Converter**: `convert()` and `convertAll()` functions
+- **Plugins**:
+  - `react-analyzer-plugin` - ts-morph analysis for CVA, forwardRef, cn patterns
+  - `shadcn-plugin` - shadcn/ui-specific metadata extraction
+  - `svelte5-runes-plugin` - Svelte 5 runes syntax transformation
 - **Types**: `PropDefinition`, `CvaConfig`, `ExtendedMitosisComponent`, etc.
 - **Mappings**: Radix primitive props, icon mappings, framework equivalents
-- **Utilities**: Class name helpers, type guards
+
+**Key transformations for Vue**:
+- `React.forwardRef` → `ref()` + `defineExpose()`
+- Props → `defineProps<Props>()` + `withDefaults()`
+- `className` → `:class` binding
+- Children → `<slot />`
+
+**Key transformations for Svelte**:
+- `React.forwardRef` → `$bindable()` + `bind:this`
+- Props → `$props()` destructuring
+- `className` → `class` attribute
+- Children → `{@render children?.()}`
+- State derivation → `$derived()`
 
 ### @react-component-converter/parser
 
-React component analysis using ts-morph:
+React component analysis using ts-morph (used by react-analyzer-plugin):
 
 - **Analyzers**:
   - `cva.ts` - Extract CVA definitions
   - `forward-ref.ts` - Detect forwardRef patterns
   - `props.ts` - Extract props from interfaces/types
   - `imports.ts` - Categorize and transform imports
-
-### @react-component-converter/compiler-vue
-
-Vue 3 SFC generation:
-
-- **Generators**:
-  - `script.ts` - `<script setup>` block with Composition API
-  - `template.ts` - Template with Vue directives
-
-**Key transformations**:
-- `React.forwardRef` → `ref()` + `defineExpose()`
-- Props → `defineProps<Props>()` + `withDefaults()`
-- `className` → `:class` binding
-- Children → `<slot />`
-
-### @react-component-converter/compiler-svelte
-
-Svelte 5 component generation:
-
-- **Generators**:
-  - `script.ts` - Script block with runes
-  - `template.ts` - Svelte template syntax
-
-**Key transformations**:
-- `React.forwardRef` → `$bindable()` + `bind:this`
-- Props → `$props()` destructuring
-- `className` → `class` attribute
-- Children → `{@render children?.()}`
-- State derivation → `$derived()`
 
 ### react-component-converter (CLI)
 

@@ -8,7 +8,12 @@
       "Bash(npx tsx:*)",
       "Bash(pnpm cc:*)",
       "Bash(pnpm -F @component-converter/cli build:*)",
-      "Bash(node scripts/convert-demos.mjs:*)"
+      "Bash(node scripts/convert-demos.mjs:*)",
+      "Bash(pnpm rcc convert:*)",
+      "Bash(pnpm test:*)",
+      "Bash(node modules/cli/dist/index.js convert:*)",
+      "Bash(node test-svelte.mjs:*)",
+      "Bash(pnpm --filter @react-component-converter/core build:*)"
     ]
   }
 }

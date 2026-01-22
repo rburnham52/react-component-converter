@@ -15,7 +15,7 @@ import type {
 
 /**
  * Main converter function that uses Mitosis with a plugin architecture.
- *
+ *yes 
  * This is a generic React-to-Framework converter that:
  * 1. Parses React TSX using Mitosis's parseJsx()
  * 2. Applies pre-parse and post-parse plugins
@@ -35,6 +35,7 @@ export async function convert(
     typescript = true,
     format = true,
     frameworkOptions,
+    targetComponent,
   } = config;
 
   // Sort plugins by order
@@ -45,6 +46,7 @@ export async function convert(
     sourceCode,
     target,
     metadata: {},
+    targetComponent,
   };
 
   const warnings: string[] = [];
@@ -230,6 +232,148 @@ export async function convertToVue(
     format: options.format ?? true,
     frameworkOptions: options.frameworkOptions as VueFrameworkOptions,
   });
+}
+
+/**
+ * Converts all components found in a React source file.
+ *
+ * Use this for files with multiple component definitions (e.g., Card.tsx with
+ * Card, CardHeader, CardContent, CardFooter, etc.).
+ *
+ * This function:
+ * 1. Uses the react-analyzer plugin to find all components in the file
+ * 2. Converts each non-re-export component separately
+ * 3. Returns a map of component name -> conversion result
+ */
+export async function convertAll(
+  sourceCode: string,
+  config: ConverterConfig
+): Promise<Map<string, ConversionResult>> {
+  const results = new Map<string, ConversionResult>();
+
+  // First, run analysis to find all components
+  const { Project, SyntaxKind } = await import('ts-morph');
+
+  const project = new Project({
+    useInMemoryFileSystem: true,
+    compilerOptions: {
+      jsx: 2, // React
+      target: 99, // ESNext
+      module: 99, // ESNext
+    },
+  });
+
+  const sourceFile = project.createSourceFile('component.tsx', sourceCode);
+
+  // Find all component definitions
+  const componentDefs = findAllComponents(sourceFile, SyntaxKind);
+
+  // Convert each non-re-export component
+  for (const compDef of componentDefs) {
+    if (compDef.isReExport) {
+      // Skip re-exports - they don't have their own JSX
+      continue;
+    }
+
+    try {
+      // Extract component-specific code
+      const componentCode = extractComponentCode(sourceCode, compDef.name, sourceFile, SyntaxKind);
+
+      // Convert the component with targetComponent set
+      const result = await convert(componentCode, {
+        ...config,
+        targetComponent: compDef.name,
+      });
+
+      // Update the filename to match the component name
+      result.filename = `${compDef.name}.${config.target === 'svelte' ? 'svelte' : 'vue'}`;
+
+      results.set(compDef.name, result);
+    } catch (error) {
+      // Store error as a failed result
+      results.set(compDef.name, {
+        code: '',
+        filename: `${compDef.name}.${config.target === 'svelte' ? 'svelte' : 'vue'}`,
+        ir: {} as MitosisComponent,
+        warnings: [`Failed to convert ${compDef.name}: ${error}`],
+        metadata: {},
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Finds all component definitions in a source file
+ */
+function findAllComponents(
+  sourceFile: any,
+  SyntaxKind: any
+): Array<{ name: string; isReExport: boolean; reExportSource?: string }> {
+  const components: Array<{ name: string; isReExport: boolean; reExportSource?: string }> = [];
+
+  // Find variable declarations
+  const variableStatements = sourceFile.getVariableStatements();
+  for (const statement of variableStatements) {
+    for (const declaration of statement.getDeclarations()) {
+      const name = declaration.getName();
+      const init = declaration.getInitializer();
+      if (!init) continue;
+
+      const initText = init.getText();
+
+      // Check if first letter is uppercase (component naming convention)
+      if (name[0] !== name[0].toUpperCase()) {
+        continue;
+      }
+
+      // Check for forwardRef
+      if (initText.includes('forwardRef') || initText.includes('React.forwardRef')) {
+        components.push({ name, isReExport: false });
+      }
+      // Check for re-exports (e.g., const Tabs = TabsPrimitive.Root)
+      else if (initText.includes('Primitive.') || initText.includes('Primitives.')) {
+        components.push({
+          name,
+          isReExport: true,
+          reExportSource: initText,
+        });
+      }
+      // Check for arrow function components
+      else if (initText.includes('=>') && (initText.includes('<') || initText.includes('return'))) {
+        components.push({ name, isReExport: false });
+      }
+    }
+  }
+
+  // Find function declarations
+  for (const func of sourceFile.getFunctions()) {
+    const name = func.getName();
+    if (name && name[0] === name[0].toUpperCase()) {
+      components.push({ name, isReExport: false });
+    }
+  }
+
+  return components;
+}
+
+/**
+ * Extracts the code for a specific component from the source file.
+ * Includes the component definition and any imports/utilities it needs.
+ *
+ * Note: We don't add export default here because the react-analyzer plugin's
+ * transformForMitosis function handles export default generation during preParse.
+ */
+function extractComponentCode(
+  fullCode: string,
+  componentName: string,
+  sourceFile: any,
+  SyntaxKind: any
+): string {
+  // Return the full code - the react-analyzer plugin will handle the transformation
+  // to create the appropriate export default function
+  return fullCode;
 }
 
 export { parseJsx, componentToSvelte, componentToVue };

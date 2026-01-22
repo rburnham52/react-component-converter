@@ -6,6 +6,7 @@ import type {
   CnPluginOptions,
   ForwardRefPluginOptions,
 } from '../types/plugins.js';
+import type { ReactAnalyzerMetadata } from './react-analyzer-plugin.js';
 
 /**
  * Combined options for the shadcn plugin
@@ -48,48 +49,84 @@ export interface ShadcnMetadata {
  *
  * This plugin is OPTIONAL - use it only when converting shadcn components.
  * For generic React components, skip this plugin.
+ *
+ * IMPORTANT: This plugin should run AFTER the react-analyzer plugin.
+ * It consumes metadata from context.metadata.reactAnalyzer if available,
+ * otherwise falls back to regex-based extraction.
  */
 export function createShadcnPlugin(options: ShadcnPluginOptions = {}): ConverterPlugin {
   return {
     name: 'shadcn',
-    order: 10, // Run early to extract metadata
+    order: 10, // Run after react-analyzer (order: 5)
 
     postParse: async (component: MitosisComponent, context: PluginContext) => {
-      const sourceCode = context.sourceCode;
-      const metadata: ShadcnMetadata = {
-        usesCn: false,
-        imports: [],
-      };
+      // Try to use metadata from react-analyzer plugin first
+      const analyzerMeta = context.metadata.reactAnalyzer as ReactAnalyzerMetadata | undefined;
 
-      // Extract CVA configuration
-      const cvaConfig = extractCvaConfig(sourceCode);
-      if (cvaConfig) {
-        metadata.cva = cvaConfig;
+      let metadata: ShadcnMetadata;
+
+      if (analyzerMeta) {
+        // Use pre-extracted metadata from react-analyzer plugin
+        const primaryCvaName = Object.keys(analyzerMeta.cvaConfigs)[0];
+        const primaryCva = primaryCvaName ? analyzerMeta.cvaConfigs[primaryCvaName] : undefined;
+
+        metadata = {
+          cva: primaryCva ? {
+            name: primaryCva.name,
+            baseClasses: primaryCva.baseClasses,
+            variants: primaryCva.variants,
+            defaultVariants: primaryCva.defaultVariants,
+          } : undefined,
+          usesCn: analyzerMeta.usesCn,
+          forwardRef: analyzerMeta.forwardRef,
+          imports: analyzerMeta.imports,
+        };
+      } else {
+        // Fallback to regex-based extraction if react-analyzer wasn't used
+        const sourceCode = context.sourceCode;
+        metadata = {
+          usesCn: false,
+          imports: [],
+        };
+
+        // Extract CVA configuration
+        const cvaConfig = extractCvaConfig(sourceCode);
+        if (cvaConfig) {
+          metadata.cva = cvaConfig;
+        }
+
+        // Check for cn() utility usage
+        metadata.usesCn = checkUsesCn(sourceCode);
+
+        // Extract forwardRef configuration
+        const forwardRefConfig = extractForwardRef(sourceCode);
+        if (forwardRefConfig) {
+          metadata.forwardRef = forwardRefConfig;
+        }
+
+        // Extract and categorize imports
+        metadata.imports = extractImports(sourceCode);
       }
-
-      // Check for cn() utility usage
-      metadata.usesCn = checkUsesCn(sourceCode);
-
-      // Extract forwardRef configuration
-      const forwardRefConfig = extractForwardRef(sourceCode);
-      if (forwardRefConfig) {
-        metadata.forwardRef = forwardRefConfig;
-      }
-
-      // Extract and categorize imports
-      metadata.imports = extractImports(sourceCode);
 
       // Store in context metadata for other plugins and compiler
-      context.metadata.reactMeta = metadata;
+      context.metadata.shadcn = metadata;
 
       // Also store in component meta for Mitosis generators
-      // Use type assertion since ShadcnMetadata is JSON-compatible
-      (component.meta as Record<string, unknown>).reactMeta = metadata;
+      (component.meta as Record<string, unknown>).shadcnMeta = metadata;
+
+      // If reactMeta wasn't set by analyzer, set it now
+      if (!(component.meta as Record<string, unknown>).reactMeta) {
+        (component.meta as Record<string, unknown>).reactMeta = metadata;
+      }
 
       return component;
     },
   };
 }
+
+// ============================================================================
+// Fallback Regex-based Extraction (used when react-analyzer isn't available)
+// ============================================================================
 
 /**
  * Extracts CVA configuration from source code

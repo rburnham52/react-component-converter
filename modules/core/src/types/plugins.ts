@@ -12,6 +12,8 @@ export interface PluginContext {
   target: 'svelte' | 'vue' | 'angular' | 'solid' | 'react';
   /** Additional metadata from previous plugins */
   metadata: Record<string, unknown>;
+  /** Target component name (for multi-component files) */
+  targetComponent?: string;
 }
 
 /**
@@ -128,6 +130,8 @@ export interface ConverterConfig {
   format?: boolean;
   /** Framework-specific options */
   frameworkOptions?: SvelteFrameworkOptions | VueFrameworkOptions;
+  /** Target component name (for multi-component files) */
+  targetComponent?: string;
 }
 
 export interface SvelteFrameworkOptions {

@@ -40,6 +40,7 @@ export type {
 // ============================================================================
 export {
   convert,
+  convertAll,
   convertToSvelte,
   convertToVue,
   parseJsx,
@@ -51,8 +52,12 @@ export {
 // Plugins
 // ============================================================================
 export {
+  createReactAnalyzerPlugin,
   createShadcnPlugin,
   createSvelte5RunesPlugin,
+  createRadixCleanupPlugin,
+  type ReactAnalyzerMetadata,
+  type ReactAnalyzerPluginOptions,
   type ShadcnPluginOptions,
   type ShadcnMetadata,
 } from './plugins/index.js';
