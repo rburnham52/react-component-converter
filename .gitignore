@@ -352,10 +352,6 @@ MigrationBackup/
 
 nul
 
-# Generated demo components (output of conversion)
-demos/svelte-demo/src/lib/components/ui/
-demos/vue-demo/src/lib/components/ui/
-
 # Build output directories
 dist/
 **/dist/
